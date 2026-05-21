@@ -7,11 +7,15 @@ public class CameraMove : MonoBehaviour
     private PlayerMove playerMove;
     private Transform playerTransform;
 
+    [SerializeField]
     private float height = 2.0f;
-    private float distance = 6.0f;
+    [SerializeField]
+    private float camDistance = 6.0f;
+    [SerializeField]
     private float sensitivity = 1.5f;
-
+    [SerializeField]
     private float pitchMin = 10.0f;
+    [SerializeField]
     private float pitchMax = 70.0f;
 
     private float yaw = 0.0f;
@@ -53,7 +57,7 @@ public class CameraMove : MonoBehaviour
     {
         Quaternion rot = Quaternion.Euler(pitch, yaw, 0.0f);
 
-        Vector3 offset = rot * new Vector3(0.0f, 0.0f, -distance);
+        Vector3 offset = rot * new Vector3(0.0f, 0.0f, -camDistance);
 
         transform.position = playerTransform.position + offset;
 

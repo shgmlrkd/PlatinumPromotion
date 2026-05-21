@@ -5,9 +5,14 @@ public class PlayerMove : MonoBehaviour
     [SerializeField]
     private float jump = 6.0f;
 
+    [SerializeField]
     private float walkSpeed = 3.0f;
+    [SerializeField]
     private float runSpeed = 5.0f;
     private float finalSpeed = 0.0f;
+
+    private float runRatio = 1.0f;
+    private float walkRatio = 0.5f;
 
     private float rotSpeed = 12.0f;
 
@@ -23,7 +28,7 @@ public class PlayerMove : MonoBehaviour
     public float SpeedRatio { get; private set; }
     public bool IsRunning { get; private set; }
 
-    public bool PrevGround { get; private set; }
+    private bool prevGround = false;
     public bool IsGround { get; private set; }
     public bool IsFalling { get; private set; }
 
@@ -34,7 +39,6 @@ public class PlayerMove : MonoBehaviour
 
     private void Update()
     {
-        CheckFalling();
         CheckGround();
         HandleInput();
         HandleMovementState();
@@ -70,7 +74,7 @@ public class PlayerMove : MonoBehaviour
         }
         else
         {
-            SpeedRatio = IsRunning ? 1.0f : 0.5f;
+            SpeedRatio = IsRunning ? runRatio : walkRatio;
         }
     }
 
@@ -91,11 +95,11 @@ public class PlayerMove : MonoBehaviour
 
     private void CheckGround()
     {
-        PrevGround = IsGround;
+        prevGround = IsGround;
 
         IsGround = Physics.Raycast(transform.position, Vector3.down, 0.15f);
 
-        if (PrevGround != IsGround)
+        if (prevGround != IsGround)
         {
             Debug.Log($"isGround : {IsGround}");
         }
