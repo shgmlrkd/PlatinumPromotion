@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class PlayerMove : MonoBehaviour
 {
@@ -10,91 +9,108 @@ public class PlayerMove : MonoBehaviour
     private float runSpeed = 5.0f;
     private float finalSpeed = 0.0f;
 
-    private float rotateSpeed = 10.0f;
+    private float rotSpeed = 12.0f;
 
     private Rigidbody rigid;
+    public float VelocityY
+    {
+        get { return rigid.linearVelocity.y; }
+    }
 
     private Vector3 direction = Vector3.zero;
 
-    private bool prevGround = false;
-    private bool isGround = false;
-    private bool isMovePlayer = false;
+    public Vector3 Direction { get; private set; }
+    public float SpeedRatio { get; private set; }
+    public bool IsRunning { get; private set; }
+
+    public bool PrevGround { get; private set; }
+    public bool IsGround { get; private set; }
+    public bool IsFalling { get; private set; }
 
     private void Awake()
     {
         rigid = GetComponent<Rigidbody>();
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        // 입력된 방향 벡터에 이동 속도를 곱해서
-        // 실제 이동 속도 벡터를 계산한다
-        Vector3 move = direction * finalSpeed;
-
-        // Rigidbody의 현재 Y속도는 유지하고
-        // 좌우/앞뒤 속도만 우리가 직접 설정해서 이동시킨다
-        rigid.linearVelocity = new Vector3(move.x, rigid.linearVelocity.y, move.z);
+        CheckFalling();
+        CheckGround();
+        HandleInput();
+        HandleMovementState();
+        HandleJump();
     }
 
-    void Update()
+    private void FixedUpdate()
     {
-        isMovePlayer = false;
-        // 방향 벡터 초기화
-        direction = Vector3.zero;
+        Move();
+    }
 
-        // W, A, S, D, Space 로 움직임 (각 방향 벡터를 더함)
-        if(Keyboard.current.wKey.isPressed)
-        {
-            direction += Vector3.forward;
-        }
+    private void HandleInput()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
 
-        if (Keyboard.current.sKey.isPressed)
-        {
-            direction += Vector3.back;
-        }
+        direction = new Vector3(horizontal, 0.0f, vertical).normalized;
 
-        if (Keyboard.current.aKey.isPressed)
-        {
-            direction += Vector3.left;
-        }
+        Direction = direction;
+    }
 
-        if (Keyboard.current.dKey.isPressed)
-        {
-            direction += Vector3.right;
-        }
+    private void HandleMovementState()
+    {
+        bool isMoving = direction.magnitude > 0.1f;
 
-        if (isMovePlayer && Keyboard.current.shiftKey.isPressed)
+        IsRunning = isMoving && Input.GetKey(KeyCode.LeftShift);
+
+        finalSpeed = IsRunning ? runSpeed : walkSpeed;
+
+        if (!isMoving)
         {
-            finalSpeed = runSpeed;
+            SpeedRatio = 0.0f;
         }
         else
         {
-            finalSpeed = walkSpeed;
+            SpeedRatio = IsRunning ? 1.0f : 0.5f;
         }
+    }
 
-        if (Keyboard.current.spaceKey.isPressed && isGround)    // 땅일 때만 점프 가능 (Rigidbody 물리 기반 점프)
+    private void Move()
+    {
+        Vector3 move = transform.TransformDirection(direction) * finalSpeed;
+
+        rigid.linearVelocity = new Vector3(move.x, rigid.linearVelocity.y, move.z);
+    }
+
+    private void HandleJump()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) && IsGround)
         {
             rigid.linearVelocity = new Vector3(rigid.linearVelocity.x, jump, rigid.linearVelocity.z);
         }
+    }
 
-        // 방향이 존재할 경우만 회전
-        if (direction != Vector3.zero)
+    private void CheckGround()
+    {
+        PrevGround = IsGround;
+
+        IsGround = Physics.Raycast(transform.position, Vector3.down, 0.15f);
+
+        if (PrevGround != IsGround)
         {
-            Quaternion targetRot = Quaternion.LookRotation(direction);
-            
-            rigid.MoveRotation(Quaternion.Slerp(rigid.rotation, targetRot, Time.deltaTime * rotateSpeed));
+            Debug.Log($"isGround : {IsGround}");
         }
+    }
 
-        // 땅인지 아래 방향으로 레이를 쏴서 체크
-        isGround = Physics.Raycast(transform.position, Vector3.down, 0.15f);
+    private void CheckFalling()
+    {
+        IsFalling = rigid.linearVelocity.y < -0.5f;
+    }
 
-        // 땅이었는지 공중이었는지 체크해서 이전과 다를 때만 로그를 보여줌
-        if(prevGround != isGround)
-        {
-            print($"isGround : {isGround}");
-        }
+    public void HandleRotation(float yaw)
+    {
+        Quaternion target = Quaternion.Euler(0.0f, yaw, 0.0f);
 
-        prevGround = isGround;
+        transform.rotation = Quaternion.Slerp(transform.rotation, target, rotSpeed * Time.deltaTime);
     }
 
     private void OnDrawGizmos()
